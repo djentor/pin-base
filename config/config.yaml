@@ -1,0 +1,148 @@
+#config_version=6
+
+## MPF Main Machine Config File: pin-base (CobraPin bench setup)
+#
+# Controller: CobraPin (OPP platform, gen2 firmware, dual STM32 boards)
+# Docs: https://missionpinball.org/latest/hardware/opp/cobrapin/
+# Number format: <board>-<card>-<pin>
+
+# ---------------------------------------------------------------
+# Hardware
+# ---------------------------------------------------------------
+hardware:
+  platform: opp
+  driverboards: opp
+
+opp:
+  driverboards: gen2
+  # CobraPin shows up as TWO COM ports (one per STM32). Find them in
+  # Device Manager > Ports (COM & LPT) with the board powered, or run:
+  #   [System.IO.Ports.SerialPort]::GetPortNames()
+  # Detected 2026-11-24: STM32 VCP (USB VID_0483 PID_5740)
+  #   COM3 = USB serial 5658527C5100 -> MPF reports OPP board 1
+  #   COM4 = USB serial 5657527D5100 -> MPF reports OPP board 0 (flippers/slings/J1)
+  # MPF identifies boards by their firmware serial, so port order doesn't matter.
+  ports: COM3, COM4
+  # If Windows swaps port order between boots, pin board serials to ports:
+  # chains:
+  #   0: COM3
+  #   1: COM4
+  # debug: true         # verbose serial logging during bring-up
+  # console_log: basic
+
+modes:
+  - attract
+  - base
+
+# ---------------------------------------------------------------
+# Switches: J1 direct inputs
+# ---------------------------------------------------------------
+switches:
+  s_flipper_right:
+    number: 0-0-1        # J1
+    tags: right_flipper
+  s_flipper_left:
+    number: 0-0-2        # J1
+    tags: left_flipper
+  s_plunger_lane:
+    number: 0-0-3        # PLACEHOLDER: change when the plunger lane switch is wired
+  # Slingshot leaf switches: NOT WIRED YET. When they are, add:
+  # s_sling_right:
+  #   number: 0-0-?
+  # s_sling_left:
+  #   number: 0-0-?
+
+# ---------------------------------------------------------------
+# Coils: J6, Bank A (HV_A via J13, fuse F1 = 2.5A)
+# ---------------------------------------------------------------
+# Bench-test values are deliberately conservative. Raise default_pulse_ms
+# in small steps (2-3 ms) until the flipper/sling feels right.
+#
+# Dual-wound flippers, no EOS switch:
+#   - Main (high-power, low-resistance) winding: SHORT PULSE ONLY.
+#     Never allow it to be held on; it will overheat and blow F1.
+#   - Hold (low-power, high-resistance) winding: designed for continuous
+#     on-time at full voltage, so it is held at 100%.
+coils:
+  # J6 slot 1: Q9 / D9
+  c_flipper_right_main:
+    number: 0-0-8
+    default_pulse_ms: 12
+  # J6 slot 2: Q10 / D10
+  c_flipper_left_main:
+    number: 0-0-9
+    default_pulse_ms: 12
+  # J6 slot 3: Q11 / D11
+  c_flipper_right_hold:
+    number: 0-0-10
+    allow_enable: true
+    default_pulse_ms: 12
+    default_hold_power: 1.0
+  # J6 slot 4: key pin (no output)
+  # J6 slot 5: Q12 / D12
+  c_flipper_left_hold:
+    number: 0-0-11
+    allow_enable: true
+    default_pulse_ms: 12
+    default_hold_power: 1.0
+  # J6 slot 6: Q1 / D1 (switch not wired yet)
+  c_sling_right:
+    number: 0-0-0
+    default_pulse_ms: 12     # bench-tuned 2026-11-24
+  # J6 slot 7: Q13 / D13 (switch not wired yet)
+  c_sling_left:
+    number: 0-0-12
+    default_pulse_ms: 12     # bench-tuned 2026-11-24
+  # J6 slot 8: Q14 / D14 (0-0-13) unused
+  # J6 slot 9: Q15 / D15 (0-0-14) unused
+
+# ---------------------------------------------------------------
+# Flippers
+# ---------------------------------------------------------------
+# main_coil + hold_coil = dual-wound: pressing the button pulses the main
+# winding and holds the hold winding; releasing the button drops both.
+#
+# BENCH TEST: enabled as soon as MPF finishes starting up, so the flippers
+# work without a trough or a started game. For normal play, remove
+# enable_events/disable_events (the default enables them only while a
+# ball is in play).
+flippers:
+  right_flipper:
+    main_coil: c_flipper_right_main
+    hold_coil: c_flipper_right_hold
+    activation_switch: s_flipper_right
+    enable_events: machine_reset_phase_3
+    disable_events: shutdown
+  left_flipper:
+    main_coil: c_flipper_left_main
+    hold_coil: c_flipper_left_hold
+    activation_switch: s_flipper_left
+    enable_events: machine_reset_phase_3
+    disable_events: shutdown
+
+# Slingshots: add once the leaf switches are wired (coil and switch must
+# both be on the same board, board 0 here):
+# autofire_coils:
+#   right_slingshot:
+#     coil: c_sling_right
+#     switch: s_sling_right
+#   left_slingshot:
+#     coil: c_sling_left
+#     switch: s_sling_left
+
+# ---------------------------------------------------------------
+# Playfield + minimal ball device
+# ---------------------------------------------------------------
+# MPF requires a playfield, and a playfield requires a source ball device.
+# Until the trough is wired, a coil-less (mechanical eject) plunger lane
+# fills that role. It never fires anything.
+ball_devices:
+  bd_plunger_lane:
+    ball_switches: s_plunger_lane
+    mechanical_eject: true
+    eject_timeouts: 3s
+
+playfields:
+  playfield:
+    default_source_device: bd_plunger_lane
+    tags: default

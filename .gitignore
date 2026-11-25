@@ -1,3 +1,13 @@
+# MPF / Python
+.venv/
+__pycache__/
+*.pyc
+logs/
+data/
+_cache/
+# mpf-monitor per-PC window positions (monitor/monitor.yaml layout IS committed)
+monitor/settings.ini
+
 # Godot 4.2+ specific ignores
 ~*.dll
 
