@@ -67,11 +67,11 @@ coils:
   # J6 slot 1: Q9 / D9
   c_flipper_right_main:
     number: 0-0-8
-    default_pulse_ms: 12
+    default_pulse_ms: 20     # bench-tuned 2026-11-26 (12 and 18 too weak)
   # J6 slot 2: Q10 / D10
   c_flipper_left_main:
     number: 0-0-9
-    default_pulse_ms: 12
+    default_pulse_ms: 20     # bench-tuned 2026-11-26 (12 and 18 too weak)
   # J6 slot 3: Q11 / D11
   c_flipper_right_hold:
     number: 0-0-10
